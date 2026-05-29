@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	notificationSQLite "hexa/internal/notification/adapters/out/sqlite"
 	taskAPI "hexa/internal/task/adapters/in/api"
 	taskSQLite "hexa/internal/task/adapters/out/sqlite"
 	systemAdapters "hexa/internal/task/adapters/out/system"
@@ -26,7 +27,8 @@ import (
 // CLIContainer holds only what CLI commands need: application services and infra.
 // No transport adapters (HTTP handler, gRPC server, etc.) are created.
 type CLIContainer struct {
-	TaskService *taskApp.TaskService
+	TaskService         *taskApp.TaskService
+	NotificationService *notificationApp.NotificationService
 
 	database *sql.DB
 }
@@ -47,15 +49,16 @@ func BuildForCLI(options BuildOptions) (*CLIContainer, error) {
 		return nil, err
 	}
 
-	taskService, err := buildCoreServices(database)
+	taskService, notificationService, err := buildCoreServices(database)
 	if err != nil {
 		database.Close()
 		return nil, err
 	}
 
 	return &CLIContainer{
-		TaskService: taskService,
-		database:    database,
+		TaskService:         taskService,
+		NotificationService: notificationService,
+		database:            database,
 	}, nil
 }
 
@@ -73,8 +76,9 @@ type RuntimeAddresses struct {
 // Container is the server composition root object graph.
 // Holds transport handlers in addition to application services.
 type Container struct {
-	TaskService *taskApp.TaskService
-	HTTPHandler http.Handler
+	TaskService         *taskApp.TaskService
+	NotificationService *notificationApp.NotificationService
+	HTTPHandler         http.Handler
 
 	database *sql.DB
 }
@@ -96,7 +100,7 @@ func BuildForServer(options BuildOptions) (*Container, error) {
 		return nil, err
 	}
 
-	taskService, err := buildCoreServices(database)
+	taskService, notificationService, err := buildCoreServices(database)
 	if err != nil {
 		database.Close()
 		return nil, err
@@ -113,9 +117,10 @@ func BuildForServer(options BuildOptions) (*Container, error) {
 	)
 
 	return &Container{
-		TaskService: taskService,
-		HTTPHandler: taskHTTPAdapter.Routes(),
-		database:    database,
+		TaskService:         taskService,
+		NotificationService: notificationService,
+		HTTPHandler:         taskHTTPAdapter.Routes(),
+		database:            database,
 	}, nil
 }
 
@@ -142,10 +147,16 @@ func openDatabase(options BuildOptions) (*sql.DB, error) {
 
 // buildCoreServices wires application modules and the cross-module bridge.
 // Used by both server and CLI paths — no transport code here.
-func buildCoreServices(database *sql.DB) (*taskApp.TaskService, error) {
+func buildCoreServices(database *sql.DB) (*taskApp.TaskService, *notificationApp.NotificationService, error) {
+	notificationRepository, err := notificationSQLite.NewSQLiteNotificationRepository(database)
+	if err != nil {
+		return nil, nil, fmt.Errorf("build notification repository: %w", err)
+	}
+
 	consoleSender := console.NewConsoleNotificationSender()
 	notificationService := notificationApp.NewNotificationService(
 		consoleSender,
+		notificationRepository,
 		systemAdapters.RandomIDGenerator{},
 		systemAdapters.SystemClock{},
 	)
@@ -154,15 +165,17 @@ func buildCoreServices(database *sql.DB) (*taskApp.TaskService, error) {
 
 	taskRepository, err := taskSQLite.NewSQLiteTaskRepository(database)
 	if err != nil {
-		return nil, fmt.Errorf("build task repository: %w", err)
+		return nil, nil, fmt.Errorf("build task repository: %w", err)
 	}
 
-	return taskApp.NewTaskService(
+	taskService := taskApp.NewTaskService(
 		taskRepository,
 		systemAdapters.RandomIDGenerator{},
 		systemAdapters.SystemClock{},
 		bridge,
-	), nil
+	)
+
+	return taskService, notificationService, nil
 }
 
 // Mode identifies one runtime component to start.

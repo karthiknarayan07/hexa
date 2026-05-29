@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	notificationCLI "hexa/internal/notification/adapters/in/cli"
 	"hexa/internal/platform/bootstrap"
 	taskCLI "hexa/internal/task/adapters/in/cli"
 )
@@ -21,6 +22,7 @@ func NewRootCommand() *cobra.Command {
 
 	rootCommand.AddCommand(newRunCommand())
 	rootCommand.AddCommand(newTaskCommand())
+	rootCommand.AddCommand(newNotificationCommand())
 
 	return rootCommand
 }
@@ -90,4 +92,30 @@ func newTaskCommand() *cobra.Command {
 	}
 
 	return taskCLI.NewTaskCommand(provider)
+}
+
+func newNotificationCommand() *cobra.Command {
+	provider := func() (notificationCLI.Services, func() error, error) {
+		container, err := bootstrap.BuildForCLI(bootstrap.BuildOptions{})
+		if err != nil {
+			return notificationCLI.Services{}, nil, err
+		}
+
+		cleanup := func() error {
+			if err := container.Close(); err != nil {
+				return fmt.Errorf("close container: %w", err)
+			}
+			return nil
+		}
+
+		services := notificationCLI.Services{
+			List:   container.NotificationService,
+			Get:    container.NotificationService,
+			Delete: container.NotificationService,
+		}
+
+		return services, cleanup, nil
+	}
+
+	return notificationCLI.NewNotificationCommand(provider)
 }

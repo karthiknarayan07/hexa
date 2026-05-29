@@ -21,6 +21,9 @@ This is a Go idiom that every application service in a hexagonal codebase
 should use. Compare with the same pattern in task/application/task_service.go.
 */
 var _ inbound.SendTaskCompletionNotificationUseCase = (*NotificationService)(nil)
+var _ inbound.ListNotificationsUseCase = (*NotificationService)(nil)
+var _ inbound.GetNotificationUseCase = (*NotificationService)(nil)
+var _ inbound.DeleteNotificationUseCase = (*NotificationService)(nil)
 
 /*
 NotificationService is the application service for the notification module.
@@ -42,6 +45,7 @@ or replaced without touching task at all.
 */
 type NotificationService struct {
 	sender      outbound.NotificationSender
+	repository  outbound.NotificationRepository
 	idGenerator outbound.IDGenerator
 	clock       outbound.Clock
 }
@@ -55,11 +59,13 @@ The composition root (main.go) satisfies them with concrete adapters.
 */
 func NewNotificationService(
 	sender outbound.NotificationSender,
+	repository outbound.NotificationRepository,
 	idGenerator outbound.IDGenerator,
 	clock outbound.Clock,
 ) *NotificationService {
 	return &NotificationService{
 		sender:      sender,
+		repository:  repository,
 		idGenerator: idGenerator,
 		clock:       clock,
 	}
@@ -114,15 +120,54 @@ func (service *NotificationService) SendTaskCompletionNotification(
 		return inbound.NotificationView{}, fmt.Errorf("build notification: %w", err)
 	}
 
+	if err := service.repository.Save(ctx, notification); err != nil {
+		return inbound.NotificationView{}, fmt.Errorf("save notification: %w", err)
+	}
+
 	if err := service.sender.Send(ctx, notification); err != nil {
 		return inbound.NotificationView{}, fmt.Errorf("send notification: %w", err)
 	}
 
+	return toNotificationView(notification), nil
+}
+
+// ListNotifications returns notifications persisted by the module.
+func (service *NotificationService) ListNotifications(ctx context.Context) ([]inbound.NotificationView, error) {
+	notifications, err := service.repository.List(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list notifications: %w", err)
+	}
+
+	views := make([]inbound.NotificationView, 0, len(notifications))
+	for _, notification := range notifications {
+		views = append(views, toNotificationView(notification))
+	}
+
+	return views, nil
+}
+
+// GetNotification returns one persisted notification by id.
+func (service *NotificationService) GetNotification(ctx context.Context, notificationID string) (inbound.NotificationView, error) {
+	notification, err := service.repository.FindByID(ctx, notificationID)
+	if err != nil {
+		return inbound.NotificationView{}, err
+	}
+
+	return toNotificationView(notification), nil
+}
+
+// DeleteNotification removes one persisted notification.
+func (service *NotificationService) DeleteNotification(ctx context.Context, notificationID string) error {
+	return service.repository.Delete(ctx, notificationID)
+}
+
+func toNotificationView(notification domain.Notification) inbound.NotificationView {
 	snapshot := notification.Snapshot()
 	return inbound.NotificationView{
 		ID:        snapshot.ID,
 		Subject:   snapshot.Subject,
 		Body:      snapshot.Body,
 		Recipient: snapshot.Recipient,
-	}, nil
+		SentAt:    snapshot.SentAt,
+	}
 }

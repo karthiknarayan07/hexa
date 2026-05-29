@@ -2,10 +2,13 @@ package outbound
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"hexa/internal/notification/domain"
 )
+
+var ErrNotificationNotFound = errors.New("notification not found")
 
 /*
 NotificationSender is the outbound port for physically delivering notifications.
@@ -25,6 +28,19 @@ That is the "plug and play infrastructure" promise of hexagonal architecture.
 */
 type NotificationSender interface {
 	Send(ctx context.Context, notification domain.Notification) error
+}
+
+/*
+NotificationRepository is the outbound port for notification persistence.
+
+The application service uses this to keep a durable record of every received
+notification and to support CLI/read use cases.
+*/
+type NotificationRepository interface {
+	Save(ctx context.Context, notification domain.Notification) error
+	FindByID(ctx context.Context, notificationID string) (domain.Notification, error)
+	List(ctx context.Context) ([]domain.Notification, error)
+	Delete(ctx context.Context, notificationID string) error
 }
 
 /*

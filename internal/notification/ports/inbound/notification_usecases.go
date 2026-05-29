@@ -1,6 +1,9 @@
 package inbound
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 /*
 SendTaskCompletionNotificationCommand is the input DTO for the notification
@@ -43,10 +46,11 @@ In this example the caller ignores it, but it is good practice to return
 a view from every use case so callers can observe what happened.
 */
 type NotificationView struct {
-	ID        string `json:"id"`
-	Subject   string `json:"subject"`
-	Body      string `json:"body"`
-	Recipient string `json:"recipient"`
+	ID        string    `json:"id"`
+	Subject   string    `json:"subject"`
+	Body      string    `json:"body"`
+	Recipient string    `json:"recipient"`
+	SentAt    time.Time `json:"sent_at"`
 }
 
 /*
@@ -69,4 +73,25 @@ console logging to email delivery) without touching the bridge adapter at all.
 */
 type SendTaskCompletionNotificationUseCase interface {
 	SendTaskCompletionNotification(ctx context.Context, cmd SendTaskCompletionNotificationCommand) (NotificationView, error)
+}
+
+/*
+ListNotificationsUseCase is an inbound query port for all notifications.
+*/
+type ListNotificationsUseCase interface {
+	ListNotifications(ctx context.Context) ([]NotificationView, error)
+}
+
+/*
+GetNotificationUseCase is an inbound query port for one notification.
+*/
+type GetNotificationUseCase interface {
+	GetNotification(ctx context.Context, notificationID string) (NotificationView, error)
+}
+
+/*
+DeleteNotificationUseCase is an inbound command port for deleting a notification.
+*/
+type DeleteNotificationUseCase interface {
+	DeleteNotification(ctx context.Context, notificationID string) error
 }
