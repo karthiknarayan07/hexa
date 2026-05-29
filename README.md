@@ -35,13 +35,17 @@ The main learning goal is to make the dependency rule obvious:
 ## Project structure
 
 ```text
-cmd/api/main.go                                    -> composition root + bridge adapter
+cmd/app/main.go                                    -> thin executable entrypoint
+
+internal/platform/cli                              -> root cobra command tree (run + task)
+internal/platform/bootstrap                        -> composition root, bridge, runtime starters
 
 internal/task/domain                     -> task aggregate and lifecycle rules
 internal/task/ports/inbound              -> use case interfaces
 internal/task/ports/outbound             -> repository, clock, ID, event publisher interfaces
 internal/task/application                -> use case implementation
 internal/task/adapters/in/api            -> HTTP driver adapter
+internal/task/adapters/in/cli            -> CLI driver adapter (cobra commands)
 internal/task/adapters/out/sqlite        -> SQLite driven adapter
 internal/task/adapters/out/system        -> clock and ID generator adapters
 
@@ -62,7 +66,7 @@ HTTP POST /tasks/{id}/complete
   -> domain aggregate (applies lifecycle rule)
   -> SQLite adapter (persist new state)
   -> TaskEventPublisher outbound port
-  -> bridge adapter in main.go  <-- only place that knows both modules
+  -> bridge adapter in internal/platform/bootstrap
   -> notification inbound port (SendTaskCompletionNotificationUseCase)
   -> notification application service
   -> ConsoleNotificationSender outbound port
@@ -76,16 +80,34 @@ Notice the direction of source-code dependencies:
 - `domain` imports nothing from the outside
 - `application` imports `domain` and ports
 - adapters import ports and application-facing contracts
-- `main` is the outermost composition root and wires everything together
+- `internal/platform/bootstrap` is the composition root and wires everything together
 
 ## Run the example
 
 ```bash
 go mod tidy
-go run ./cmd/api
+go run ./cmd/app run
 ```
 
-The server listens on `:8080` and uses the file database at `data/backlog.db`.
+By default `run` starts all runtime modes (`http`, `grpc`, `worker`, `cron`).
+You can narrow to selected modes:
+
+```bash
+go run ./cmd/app run --run http
+go run ./cmd/app run --run http --run grpc
+```
+
+Task management is also available via CLI:
+
+```bash
+go run ./cmd/app task create --title "Learn clean architecture" --description "trace the flow"
+go run ./cmd/app task list
+go run ./cmd/app task get --id <task-id>
+go run ./cmd/app task update --id <task-id> --title "Updated title" --description "Updated description"
+go run ./cmd/app task delete --id <task-id>
+```
+
+SQLite database path remains `data/backlog.db`.
 
 ## Try the flow
 
@@ -136,7 +158,9 @@ If you want to study from the inside out:
 **Adapters and wiring:**
 11. `internal/task/adapters/out/sqlite/task_repository.go`
 12. `internal/task/adapters/in/api/handler.go`
-13. `cmd/api/main.go`  ← the bridge adapter lives here; read this last
+13. `internal/platform/bootstrap/container.go`  ← bridge + runtime composition root
+14. `internal/platform/cli/root_command.go`  ← single-entrypoint command orchestration
+15. `cmd/app/main.go`  ← tiny executable entrypoint
 
 If you want to follow a live request from the edge inward, read that list in reverse.
 

@@ -12,6 +12,7 @@ var (
 	ErrTaskAlreadyStarted     = errors.New("task already started")
 	ErrTaskAlreadyCompleted   = errors.New("task already completed")
 	ErrTaskMustBeStartedFirst = errors.New("task must be started before it can be completed")
+	ErrTaskCannotBeUpdated    = errors.New("completed task cannot be updated")
 	ErrInvalidTaskState       = errors.New("task state is invalid")
 )
 
@@ -159,6 +160,27 @@ func (task *Task) Complete(completedAt time.Time) error {
 
 	task.status = TaskStatusCompleted
 	task.completedAt = &normalizedCompletedAt
+
+	return nil
+}
+
+/*
+UpdateDetails changes mutable task fields while preserving lifecycle rules.
+
+Completed tasks are treated as immutable snapshots.
+*/
+func (task *Task) UpdateDetails(title string, description string) error {
+	if task.status == TaskStatusCompleted {
+		return ErrTaskCannotBeUpdated
+	}
+
+	normalizedTitle := strings.TrimSpace(title)
+	if normalizedTitle == "" {
+		return ErrTaskTitleRequired
+	}
+
+	task.title = normalizedTitle
+	task.description = strings.TrimSpace(description)
 
 	return nil
 }

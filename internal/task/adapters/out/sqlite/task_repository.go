@@ -171,6 +171,34 @@ func (repository *SQLiteTaskRepository) List(ctx context.Context) ([]domain.Task
 }
 
 /*
+Delete removes one task by id.
+
+The adapter translates "not found" into the outbound port's shared error so
+application and inbound adapters can map it consistently.
+*/
+func (repository *SQLiteTaskRepository) Delete(ctx context.Context, taskID string) error {
+	result, err := repository.database.ExecContext(
+		ctx,
+		`DELETE FROM tasks WHERE id = ?`,
+		taskID,
+	)
+	if err != nil {
+		return fmt.Errorf("delete task: %w", err)
+	}
+
+	affectedRows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("check deleted rows: %w", err)
+	}
+
+	if affectedRows == 0 {
+		return outbound.ErrTaskNotFound
+	}
+
+	return nil
+}
+
+/*
 ensureSchema creates the backing table when the application starts.
 
 Keeping the schema in the adapter lets the example stay self-contained.

@@ -19,6 +19,14 @@ type CreateTaskCommand struct {
 }
 
 /*
+UpdateTaskCommand is an input DTO for task updates.
+*/
+type UpdateTaskCommand struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+}
+
+/*
 TaskView is an output DTO exposed by inbound ports.
 
 The application layer returns this shape to outer adapters so they do not
@@ -72,4 +80,25 @@ even in a tiny teaching example like this one.
 */
 type ListTasksUseCase interface {
 	ListTasks(ctx context.Context) ([]TaskView, error)
+}
+
+/*
+GetTaskUseCase is an inbound query port for loading one task.
+*/
+type GetTaskUseCase interface {
+	GetTask(ctx context.Context, taskID string) (TaskView, error)
+}
+
+/*
+UpdateTaskUseCase is an inbound command port for updating task details.
+*/
+type UpdateTaskUseCase interface {
+	UpdateTask(ctx context.Context, taskID string, command UpdateTaskCommand) (TaskView, error)
+}
+
+/*
+DeleteTaskUseCase is an inbound command port for deleting a task.
+*/
+type DeleteTaskUseCase interface {
+	DeleteTask(ctx context.Context, taskID string) error
 }

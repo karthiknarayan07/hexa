@@ -14,6 +14,9 @@ var (
 	_ inbound.StartTaskUseCase    = (*TaskService)(nil)
 	_ inbound.CompleteTaskUseCase = (*TaskService)(nil)
 	_ inbound.ListTasksUseCase    = (*TaskService)(nil)
+	_ inbound.GetTaskUseCase      = (*TaskService)(nil)
+	_ inbound.UpdateTaskUseCase   = (*TaskService)(nil)
+	_ inbound.DeleteTaskUseCase   = (*TaskService)(nil)
 )
 
 /*
@@ -203,6 +206,49 @@ func (service *TaskService) ListTasks(ctx context.Context) ([]inbound.TaskView, 
 	}
 
 	return views, nil
+}
+
+/*
+GetTask is a query use case for a single task.
+*/
+func (service *TaskService) GetTask(ctx context.Context, taskID string) (inbound.TaskView, error) {
+	task, err := service.repository.FindByID(ctx, taskID)
+	if err != nil {
+		return inbound.TaskView{}, err
+	}
+
+	return toTaskView(task), nil
+}
+
+/*
+UpdateTask changes mutable details for an existing task.
+*/
+func (service *TaskService) UpdateTask(ctx context.Context, taskID string, command inbound.UpdateTaskCommand) (inbound.TaskView, error) {
+	task, err := service.repository.FindByID(ctx, taskID)
+	if err != nil {
+		return inbound.TaskView{}, err
+	}
+
+	if err := task.UpdateDetails(command.Title, command.Description); err != nil {
+		return inbound.TaskView{}, err
+	}
+
+	if err := service.repository.Save(ctx, task); err != nil {
+		return inbound.TaskView{}, fmt.Errorf("save updated task: %w", err)
+	}
+
+	return toTaskView(task), nil
+}
+
+/*
+DeleteTask removes one task.
+*/
+func (service *TaskService) DeleteTask(ctx context.Context, taskID string) error {
+	if err := service.repository.Delete(ctx, taskID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 /*

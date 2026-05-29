@@ -22,9 +22,17 @@ type TaskAPI struct {
 	startTask    inbound.StartTaskUseCase
 	completeTask inbound.CompleteTaskUseCase
 	listTasks    inbound.ListTasksUseCase
+	getTask      inbound.GetTaskUseCase
+	updateTask   inbound.UpdateTaskUseCase
+	deleteTask   inbound.DeleteTaskUseCase
 }
 
 type createTaskRequest struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+}
+
+type updateTaskRequest struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 }
@@ -44,12 +52,18 @@ func NewTaskAPI(
 	startTask inbound.StartTaskUseCase,
 	completeTask inbound.CompleteTaskUseCase,
 	listTasks inbound.ListTasksUseCase,
+	getTask inbound.GetTaskUseCase,
+	updateTask inbound.UpdateTaskUseCase,
+	deleteTask inbound.DeleteTaskUseCase,
 ) *TaskAPI {
 	return &TaskAPI{
 		createTask:   createTask,
 		startTask:    startTask,
 		completeTask: completeTask,
 		listTasks:    listTasks,
+		getTask:      getTask,
+		updateTask:   updateTask,
+		deleteTask:   deleteTask,
 	}
 }
 
@@ -63,6 +77,9 @@ func (api *TaskAPI) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /tasks", api.handleCreateTask)
 	mux.HandleFunc("GET /tasks", api.handleListTasks)
+	mux.HandleFunc("GET /tasks/{id}", api.handleGetTask)
+	mux.HandleFunc("PUT /tasks/{id}", api.handleUpdateTask)
+	mux.HandleFunc("DELETE /tasks/{id}", api.handleDeleteTask)
 	mux.HandleFunc("POST /tasks/{id}/start", api.handleStartTask)
 	mux.HandleFunc("POST /tasks/{id}/complete", api.handleCompleteTask)
 
@@ -108,6 +125,56 @@ func (api *TaskAPI) handleListTasks(writer http.ResponseWriter, request *http.Re
 }
 
 /*
+handleGetTask loads one task by id.
+*/
+func (api *TaskAPI) handleGetTask(writer http.ResponseWriter, request *http.Request) {
+	task, err := api.getTask.GetTask(request.Context(), request.PathValue("id"))
+	if err != nil {
+		api.writeDomainAwareError(writer, err)
+		return
+	}
+
+	api.writeJSON(writer, http.StatusOK, task)
+}
+
+/*
+handleUpdateTask updates title/description for one task.
+*/
+func (api *TaskAPI) handleUpdateTask(writer http.ResponseWriter, request *http.Request) {
+	var payload updateTaskRequest
+
+	decoder := json.NewDecoder(request.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&payload); err != nil {
+		api.writeError(writer, http.StatusBadRequest, fmt.Errorf("decode request body: %w", err))
+		return
+	}
+
+	task, err := api.updateTask.UpdateTask(request.Context(), request.PathValue("id"), inbound.UpdateTaskCommand{
+		Title:       payload.Title,
+		Description: payload.Description,
+	})
+	if err != nil {
+		api.writeDomainAwareError(writer, err)
+		return
+	}
+
+	api.writeJSON(writer, http.StatusOK, task)
+}
+
+/*
+handleDeleteTask removes one task.
+*/
+func (api *TaskAPI) handleDeleteTask(writer http.ResponseWriter, request *http.Request) {
+	if err := api.deleteTask.DeleteTask(request.Context(), request.PathValue("id")); err != nil {
+		api.writeDomainAwareError(writer, err)
+		return
+	}
+
+	writer.WriteHeader(http.StatusNoContent)
+}
+
+/*
 handleStartTask resolves the route parameter and forwards the call inward.
 */
 func (api *TaskAPI) handleStartTask(writer http.ResponseWriter, request *http.Request) {
@@ -149,6 +216,8 @@ func (api *TaskAPI) writeDomainAwareError(writer http.ResponseWriter, err error)
 		api.writeError(writer, http.StatusNotFound, err)
 	case errors.Is(err, domain.ErrTaskTitleRequired), errors.Is(err, domain.ErrTaskMustBeStartedFirst):
 		api.writeError(writer, http.StatusBadRequest, err)
+	case errors.Is(err, domain.ErrTaskCannotBeUpdated):
+		api.writeError(writer, http.StatusConflict, err)
 	case errors.Is(err, domain.ErrTaskAlreadyStarted), errors.Is(err, domain.ErrTaskAlreadyCompleted):
 		api.writeError(writer, http.StatusConflict, err)
 	case errors.Is(err, domain.ErrInvalidTaskState):

@@ -21,6 +21,7 @@ type TaskRepository interface {
 	Save(ctx context.Context, task domain.Task) error
 	FindByID(ctx context.Context, taskID string) (domain.Task, error)
 	List(ctx context.Context) ([]domain.Task, error)
+	Delete(ctx context.Context, taskID string) error
 }
 
 /*
