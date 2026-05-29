@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"go-example/internal/task/ports/inbound"
+	"hexa/internal/task/ports/inbound"
 )
 
 // Services lists inbound task use cases consumed by the CLI adapter.

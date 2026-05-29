@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"go-example/internal/notification/domain"
-	"go-example/internal/notification/ports/inbound"
-	"go-example/internal/notification/ports/outbound"
+	"hexa/internal/notification/domain"
+	"hexa/internal/notification/ports/inbound"
+	"hexa/internal/notification/ports/outbound"
 )
 
 /*

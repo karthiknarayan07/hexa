@@ -8,8 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"go-example/internal/platform/bootstrap"
-	taskCLI "go-example/internal/task/adapters/in/cli"
+	"hexa/internal/platform/bootstrap"
+	taskCLI "hexa/internal/task/adapters/in/cli"
 )
 
 // NewRootCommand builds the single-entrypoint command tree.

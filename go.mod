@@ -1,4 +1,4 @@
-module go-example
+module hexa
 
 go 1.26
 

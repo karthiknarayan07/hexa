@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"go-example/internal/task/domain"
-	"go-example/internal/task/ports/outbound"
+	"hexa/internal/task/domain"
+	"hexa/internal/task/ports/outbound"
 )
 
 /*

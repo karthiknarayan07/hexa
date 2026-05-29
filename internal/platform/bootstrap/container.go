@@ -10,15 +10,15 @@ import (
 	"path/filepath"
 	"time"
 
-	taskAPI "go-example/internal/task/adapters/in/api"
-	taskSQLite "go-example/internal/task/adapters/out/sqlite"
-	systemAdapters "go-example/internal/task/adapters/out/system"
-	taskApp "go-example/internal/task/application"
-	taskOut "go-example/internal/task/ports/outbound"
+	taskAPI "hexa/internal/task/adapters/in/api"
+	taskSQLite "hexa/internal/task/adapters/out/sqlite"
+	systemAdapters "hexa/internal/task/adapters/out/system"
+	taskApp "hexa/internal/task/application"
+	taskOut "hexa/internal/task/ports/outbound"
 
-	"go-example/internal/notification/adapters/out/console"
-	notificationApp "go-example/internal/notification/application"
-	notificationIn "go-example/internal/notification/ports/inbound"
+	"hexa/internal/notification/adapters/out/console"
+	notificationApp "hexa/internal/notification/application"
+	notificationIn "hexa/internal/notification/ports/inbound"
 
 	_ "modernc.org/sqlite"
 )

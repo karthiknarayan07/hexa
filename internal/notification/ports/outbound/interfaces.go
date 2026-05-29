@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"go-example/internal/notification/domain"
+	"hexa/internal/notification/domain"
 )
 
 /*

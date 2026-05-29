@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	platformCLI "go-example/internal/platform/cli"
+	platformCLI "hexa/internal/platform/cli"
 )
 
 func main() {

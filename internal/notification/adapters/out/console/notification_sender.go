@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"go-example/internal/notification/domain"
+	"hexa/internal/notification/domain"
 )
 
 /*
