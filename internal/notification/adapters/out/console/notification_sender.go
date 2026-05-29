@@ -8,7 +8,7 @@ import (
 )
 
 /*
-ConsoleSender is the outbound adapter for the notification module's NotificationSender port.
+ConsoleNotificationSender is the outbound adapter for the notification module's NotificationSender port.
 
 It satisfies the port by writing structured log entries to stdout using slog.
 
@@ -21,20 +21,20 @@ The application service builds the Notification value and decides what to send;
 this adapter decides HOW to physically deliver it.
 
 Swap examples — none of these require changes inside the notification module:
-  - Replace ConsoleSender with EmailSender to deliver via SMTP.
-  - Replace ConsoleSender with SlackSender to post to a channel.
-  - Replace ConsoleSender with QueueSender to publish to RabbitMQ.
+  - Replace ConsoleNotificationSender with EmailSender to deliver via SMTP.
+  - Replace ConsoleNotificationSender with SlackSender to post to a channel.
+  - Replace ConsoleNotificationSender with QueueSender to publish to RabbitMQ.
 
 All you change is which adapter you wire in main.go.
 The NotificationService, NotificationDomain, and ports stay exactly the same.
 */
-type ConsoleSender struct{}
+type ConsoleNotificationSender struct{}
 
 /*
-NewConsoleSender creates the console delivery adapter.
+NewConsoleNotificationSender creates the console delivery adapter.
 */
-func NewConsoleSender() *ConsoleSender {
-	return &ConsoleSender{}
+func NewConsoleNotificationSender() *ConsoleNotificationSender {
+	return &ConsoleNotificationSender{}
 }
 
 /*
@@ -48,7 +48,7 @@ Notice: the adapter does no business-rule checking. It trusts that the
 application service already validated the notification through the domain
 constructor. The adapter's only job is delivery.
 */
-func (sender *ConsoleSender) Send(_ context.Context, notification domain.Notification) error {
+func (sender *ConsoleNotificationSender) Send(_ context.Context, notification domain.Notification) error {
 	snapshot := notification.Snapshot()
 
 	slog.Info("notification delivered",

@@ -13,7 +13,7 @@ This repository is a small learning project that shows how to combine:
 
 The project contains two independent bounded contexts (modules):
 
-**taskmanagement** — manages the backlog of tasks and their lifecycle.  
+**task** — manages the backlog of tasks and their lifecycle.  
 Tasks move through: `PLANNED → IN_PROGRESS → COMPLETED`.
 
 **notification** — sends notifications when significant events happen.  
@@ -37,13 +37,13 @@ The main learning goal is to make the dependency rule obvious:
 ```text
 cmd/api/main.go                                    -> composition root + bridge adapter
 
-internal/taskmanagement/domain                     -> task aggregate and lifecycle rules
-internal/taskmanagement/ports/inbound              -> use case interfaces
-internal/taskmanagement/ports/outbound             -> repository, clock, ID, event publisher interfaces
-internal/taskmanagement/application                -> use case implementation
-internal/taskmanagement/adapters/in/api            -> HTTP driver adapter
-internal/taskmanagement/adapters/out/sqlite        -> SQLite driven adapter
-internal/taskmanagement/adapters/out/system        -> clock and ID generator adapters
+internal/task/domain                     -> task aggregate and lifecycle rules
+internal/task/ports/inbound              -> use case interfaces
+internal/task/ports/outbound             -> repository, clock, ID, event publisher interfaces
+internal/task/application                -> use case implementation
+internal/task/adapters/in/api            -> HTTP driver adapter
+internal/task/adapters/out/sqlite        -> SQLite driven adapter
+internal/task/adapters/out/system        -> clock and ID generator adapters
 
 internal/notification/domain                       -> notification domain object
 internal/notification/ports/inbound                -> notification use case interface
@@ -56,16 +56,16 @@ internal/notification/adapters/out/console         -> console (slog) delivery ad
 
 ```text
 HTTP POST /tasks/{id}/complete
-  -> taskmanagement HTTP adapter
-  -> taskmanagement inbound port (CompleteTaskUseCase)
-  -> taskmanagement application service
+  -> task HTTP adapter
+  -> task inbound port (CompleteTaskUseCase)
+  -> task application service
   -> domain aggregate (applies lifecycle rule)
   -> SQLite adapter (persist new state)
   -> TaskEventPublisher outbound port
   -> bridge adapter in main.go  <-- only place that knows both modules
   -> notification inbound port (SendTaskCompletionNotificationUseCase)
   -> notification application service
-  -> ConsoleSender outbound port
+  -> ConsoleNotificationSender outbound port
   -> slog output
 ```
 
@@ -119,12 +119,12 @@ curl -X POST http://localhost:8080/tasks/<task-id>/complete
 
 If you want to study from the inside out:
 
-**taskmanagement module:**
-1. `internal/taskmanagement/domain/task.go`
-2. `internal/taskmanagement/ports/inbound/task_usecases.go`
-3. `internal/taskmanagement/ports/outbound/task_repository.go`
-4. `internal/taskmanagement/ports/outbound/task_event_publisher.go`
-5. `internal/taskmanagement/application/task_service.go`
+**task module:**
+1. `internal/task/domain/task.go`
+2. `internal/task/ports/inbound/task_usecases.go`
+3. `internal/task/ports/outbound/task_repository.go`
+4. `internal/task/ports/outbound/task_event_publisher.go`
+5. `internal/task/application/task_service.go`
 
 **notification module:**
 6. `internal/notification/domain/notification.go`
@@ -134,8 +134,8 @@ If you want to study from the inside out:
 10. `internal/notification/adapters/out/console/notification_sender.go`
 
 **Adapters and wiring:**
-11. `internal/taskmanagement/adapters/out/sqlite/task_repository.go`
-12. `internal/taskmanagement/adapters/in/api/handler.go`
+11. `internal/task/adapters/out/sqlite/task_repository.go`
+12. `internal/task/adapters/in/api/handler.go`
 13. `cmd/api/main.go`  ← the bridge adapter lives here; read this last
 
 If you want to follow a live request from the edge inward, read that list in reverse.

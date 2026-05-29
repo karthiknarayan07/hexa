@@ -1,5 +1,4 @@
 package domain
-package domain
 
 import (
 	"errors"
@@ -19,7 +18,7 @@ Notification is the aggregate root of the notification module.
 
 It represents the record of a message that was built and delivered to a recipient.
 
-Compare this domain object to the Task aggregate in taskmanagement:
+Compare this domain object to the Task aggregate in task:
   - Task has a rich lifecycle: PLANNED → IN_PROGRESS → COMPLETED.
     It must guard against invalid transitions and carries time ranges.
   - Notification is simpler: it is created once, delivered once, and done.
@@ -67,9 +66,9 @@ domain.NewTask. Every constructor in the domain layer should follow this
 pattern so callers are forced to handle the case where creation fails.
 */
 func NewNotification(id, subject, body, recipient string, sentAt time.Time) (Notification, error) {
-	id        = strings.TrimSpace(id)
-	subject   = strings.TrimSpace(subject)
-	body      = strings.TrimSpace(body)
+	id = strings.TrimSpace(id)
+	subject = strings.TrimSpace(subject)
+	body = strings.TrimSpace(body)
 	recipient = strings.TrimSpace(recipient)
 
 	if id == "" {

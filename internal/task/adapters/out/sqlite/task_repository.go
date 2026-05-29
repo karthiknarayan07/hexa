@@ -7,17 +7,17 @@ import (
 	"fmt"
 	"time"
 
-	"go-example/internal/taskmanagement/domain"
-	"go-example/internal/taskmanagement/ports/outbound"
+	"go-example/internal/task/domain"
+	"go-example/internal/task/ports/outbound"
 )
 
 /*
-TaskRepository is a SQLite implementation of the outbound repository port.
+SQLiteTaskRepository is a SQLite implementation of the outbound repository port.
 
 This adapter lives outside the core. It knows SQL, tables, and storage
 concerns, but it does not decide business rules.
 */
-type TaskRepository struct {
+type SQLiteTaskRepository struct {
 	database *sql.DB
 }
 
@@ -32,13 +32,13 @@ type taskRow struct {
 }
 
 /*
-NewTaskRepository builds the adapter and ensures the table exists.
+NewSQLiteTaskRepository builds the adapter and ensures the table exists.
 
 Schema management stays in the infrastructure side because it is a storage
 concern, not an application or domain concern.
 */
-func NewTaskRepository(database *sql.DB) (*TaskRepository, error) {
-	repository := &TaskRepository{database: database}
+func NewSQLiteTaskRepository(database *sql.DB) (*SQLiteTaskRepository, error) {
+	repository := &SQLiteTaskRepository{database: database}
 
 	if err := repository.ensureSchema(); err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ Save upserts the task snapshot into SQLite.
 The adapter converts the aggregate snapshot into table columns,
 which is the classic job of a driven adapter.
 */
-func (repository *TaskRepository) Save(ctx context.Context, task domain.Task) error {
+func (repository *SQLiteTaskRepository) Save(ctx context.Context, task domain.Task) error {
 	snapshot := task.Snapshot()
 
 	_, err := repository.database.ExecContext(
@@ -88,7 +88,7 @@ FindByID loads one task and reconstructs the aggregate through the domain.
 Reconstruction still goes through domain validation so the adapter cannot
 silently create an invalid aggregate.
 */
-func (repository *TaskRepository) FindByID(ctx context.Context, taskID string) (domain.Task, error) {
+func (repository *SQLiteTaskRepository) FindByID(ctx context.Context, taskID string) (domain.Task, error) {
 	row := repository.database.QueryRowContext(
 		ctx,
 		`SELECT id, title, description, status, created_at, started_at, completed_at
@@ -128,7 +128,7 @@ List returns every task ordered by creation time.
 The repository returns domain aggregates because the application layer still
 works in domain concepts, not SQL row concepts.
 */
-func (repository *TaskRepository) List(ctx context.Context) ([]domain.Task, error) {
+func (repository *SQLiteTaskRepository) List(ctx context.Context) ([]domain.Task, error) {
 	rows, err := repository.database.QueryContext(
 		ctx,
 		`SELECT id, title, description, status, created_at, started_at, completed_at
@@ -175,7 +175,7 @@ ensureSchema creates the backing table when the application starts.
 
 Keeping the schema in the adapter lets the example stay self-contained.
 */
-func (repository *TaskRepository) ensureSchema() error {
+func (repository *SQLiteTaskRepository) ensureSchema() error {
 	_, err := repository.database.Exec(`CREATE TABLE IF NOT EXISTS tasks (
 		id TEXT PRIMARY KEY,
 		title TEXT NOT NULL,

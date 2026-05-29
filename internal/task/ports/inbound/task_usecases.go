@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"go-example/internal/taskmanagement/domain"
+	"go-example/internal/task/domain"
 )
 
 /*

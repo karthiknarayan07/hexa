@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"go-example/internal/taskmanagement/domain"
-	"go-example/internal/taskmanagement/ports/inbound"
-	"go-example/internal/taskmanagement/ports/outbound"
+	"go-example/internal/task/domain"
+	"go-example/internal/task/ports/inbound"
+	"go-example/internal/task/ports/outbound"
 )
 
 var (
@@ -19,7 +19,7 @@ var (
 /*
 TaskService is the application-layer implementation of the use cases.
 
-This service sits at the heart of the taskmanagement module. It:
+This service sits at the heart of the task module. It:
   - receives commands through inbound ports (called by adapters like HTTP)
   - delegates business-rule enforcement to the domain aggregate
   - persists state through the repository outbound port

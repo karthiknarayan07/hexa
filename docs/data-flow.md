@@ -6,7 +6,7 @@ This document explains the runtime flow and the dependency flow using the folder
 
 This project has two independent modules (bounded contexts):
 
-- **taskmanagement** — owns the task lifecycle (PLANNED → IN_PROGRESS → COMPLETED)
+- **task** — owns the task lifecycle (PLANNED → IN_PROGRESS → COMPLETED)
 - **notification** — delivers notifications when something significant happens
 
 Neither module imports the other. They communicate through port interfaces and
@@ -19,7 +19,7 @@ cmd/
   api/                                      -> composition root + cross-module bridge adapter
 
 internal/
-  taskmanagement/                           -> bounded context: task lifecycle
+  task/                           -> bounded context: task lifecycle
     domain/                                 -> Task aggregate, lifecycle rules
     ports/
       inbound/                              -> use cases the outside world can call
@@ -53,21 +53,21 @@ When a client calls `POST /tasks/{id}/complete`:
 1. `cmd/api` (composition root)
    The server is running with all adapters wired in.
 
-2. `internal/taskmanagement/adapters/in/api`
+2. `internal/task/adapters/in/api`
    The HTTP adapter extracts the task ID from the route and calls the
    `CompleteTaskUseCase` inbound port.
 
-3. `internal/taskmanagement/ports/inbound`
+3. `internal/task/ports/inbound`
    The adapter uses only the interface at this boundary, not the concrete service.
 
-4. `internal/taskmanagement/application`
+4. `internal/task/application`
    The TaskService loads the task, asks the domain aggregate to complete it,
    persists the new state, then calls the `TaskEventPublisher` outbound port.
 
-5. `internal/taskmanagement/domain`
+5. `internal/task/domain`
    The Task aggregate validates the transition: only IN_PROGRESS tasks can complete.
 
-6. `internal/taskmanagement/ports/outbound`
+6. `internal/task/ports/outbound`
    Two outbound ports are called:
    - `TaskRepository.Save` — persists the completed task to SQLite
    - `TaskEventPublisher.PublishTaskCompleted` — fires the cross-module event
@@ -90,7 +90,7 @@ When a client calls `POST /tasks/{id}/complete`:
     The Notification value object validates that all required fields are present.
 
 11. `internal/notification/adapters/out/console`
-    The ConsoleSender writes a structured slog entry to stdout.
+   The ConsoleNotificationSender writes a structured slog entry to stdout.
 
 12. Control unwinds back through all layers returning the HTTP 200 response.
 
@@ -101,7 +101,7 @@ But source-code dependencies MUST only point inward.
 
 ```text
 cmd/api              →  all modules (composition root is the exception)
-taskmanagement       →  its own domain and ports only
+task       →  its own domain and ports only
 notification         →  its own domain and ports only
 adapters             →  the ports they satisfy
 neither module       →  the other module  (this is the key rule)
@@ -113,11 +113,11 @@ The bridge adapter in `cmd/api/main.go` is the answer to:
 "How do two modules communicate without importing each other?"
 
 ```text
-  taskmanagement.TaskService
+  task.TaskService
         |
         |  calls outbound port
         v
-  taskOut.TaskEventPublisher   <-- interface owned by taskmanagement
+  taskOut.TaskEventPublisher   <-- interface owned by task
         ^
         |  satisfied by
         |
@@ -139,16 +139,16 @@ The bridge sits at the outer edge and connects them.
 
 | What it is | Where it lives |
 |---|---|
-| Business rule for a task | `taskmanagement/domain` |
+| Business rule for a task | `task/domain` |
 | Business rule for a notification | `notification/domain` |
-| Task use-case the HTTP layer calls | `taskmanagement/ports/inbound` |
+| Task use-case the HTTP layer calls | `task/ports/inbound` |
 | Notification use-case the bridge calls | `notification/ports/inbound` |
-| Interface for things taskmanagement needs | `taskmanagement/ports/outbound` |
+| Interface for things task needs | `task/ports/outbound` |
 | Interface for things notification needs | `notification/ports/outbound` |
-| Task use-case orchestration | `taskmanagement/application` |
+| Task use-case orchestration | `task/application` |
 | Notification use-case orchestration | `notification/application` |
-| HTTP, JSON, route parsing | `taskmanagement/adapters/in/api` |
-| SQLite row mapping | `taskmanagement/adapters/out/sqlite` |
+| HTTP, JSON, route parsing | `task/adapters/in/api` |
+| SQLite row mapping | `task/adapters/out/sqlite` |
 | Console log delivery | `notification/adapters/out/console` |
-| Clock, ID generator (concrete) | `taskmanagement/adapters/out/system` |
+| Clock, ID generator (concrete) | `task/adapters/out/system` |
 | All object wiring + bridge | `cmd/api/main.go` |

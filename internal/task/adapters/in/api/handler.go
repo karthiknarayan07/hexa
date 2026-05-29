@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"go-example/internal/taskmanagement/domain"
-	"go-example/internal/taskmanagement/ports/inbound"
-	"go-example/internal/taskmanagement/ports/outbound"
+	"go-example/internal/task/domain"
+	"go-example/internal/task/ports/inbound"
+	"go-example/internal/task/ports/outbound"
 )
 
 /*

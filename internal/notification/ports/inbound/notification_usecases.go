@@ -1,5 +1,4 @@
 package inbound
-package inbound
 
 import "context"
 
@@ -11,13 +10,13 @@ This DTO lives in the INBOUND PORTS of the notification module.
 It is the shape callers must use to request a notification — there is no
 other way to drive the notification module from outside.
 
-Compare this to CreateTaskCommand in taskmanagement/ports/inbound:
+Compare this to CreateTaskCommand in task/ports/inbound:
   - Both are plain structs with no methods.
   - Both belong to the boundary of their own module.
   - Neither leaks domain internals to callers.
 
 The bridge adapter in cmd/api/main.go builds this struct when translating
-the taskmanagement.TaskCompletedEvent into a notification command.
+the task.TaskCompletedEvent into a notification command.
 That adapter is the ONLY place that knows about both modules.
 */
 type SendTaskCompletionNotificationCommand struct {
@@ -56,8 +55,8 @@ SendTaskCompletionNotificationUseCase is the inbound port of the notification mo
 Any code that wants to trigger a notification must depend on this interface,
 not on the concrete NotificationService struct.
 
-This mirrors the same pattern used in taskmanagement:
-  - taskmanagement exposes CreateTaskUseCase, StartTaskUseCase, etc.
+This mirrors the same pattern used in task:
+  - task exposes CreateTaskUseCase, StartTaskUseCase, etc.
   - notification exposes SendTaskCompletionNotificationUseCase
 
 Every module that exposes behaviour to the outside world does so through

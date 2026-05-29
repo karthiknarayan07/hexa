@@ -1,5 +1,4 @@
 package application
-package application
 
 import (
 	"context"
@@ -19,14 +18,14 @@ this line makes the build fail here with a clear error message instead of
 failing at the call site in main.go — or worse, at runtime.
 
 This is a Go idiom that every application service in a hexagonal codebase
-should use. Compare with the same pattern in taskmanagement/application/task_service.go.
+should use. Compare with the same pattern in task/application/task_service.go.
 */
 var _ inbound.SendTaskCompletionNotificationUseCase = (*NotificationService)(nil)
 
 /*
 NotificationService is the application service for the notification module.
 
-Its role is identical to what TaskService plays in taskmanagement:
+Its role is identical to what TaskService plays in task:
   - Receives commands through inbound ports (called by adapters or bridges)
   - Builds domain values that enforce business rules
   - Delegates infrastructure concerns to outbound ports
@@ -39,7 +38,7 @@ Key difference: this service does NOT know it was triggered by a task
 lifecycle event. It knows only that someone called its inbound port with
 a SendTaskCompletionNotificationCommand. That deliberate ignorance is what
 keeps modules decoupled. The notification module can be tested, extended,
-or replaced without touching taskmanagement at all.
+or replaced without touching task at all.
 */
 type NotificationService struct {
 	sender      outbound.NotificationSender
@@ -50,14 +49,14 @@ type NotificationService struct {
 /*
 NewNotificationService creates the notification application service.
 
-The same dependency-injection pattern as taskmanagement.NewTaskService:
+The same dependency-injection pattern as task.NewTaskService:
 all parameters are interfaces from the module's own outbound ports.
 The composition root (main.go) satisfies them with concrete adapters.
 */
 func NewNotificationService(
-	sender      outbound.NotificationSender,
+	sender outbound.NotificationSender,
 	idGenerator outbound.IDGenerator,
-	clock       outbound.Clock,
+	clock outbound.Clock,
 ) *NotificationService {
 	return &NotificationService{
 		sender:      sender,
@@ -70,17 +69,18 @@ func NewNotificationService(
 SendTaskCompletionNotification handles the notification use case.
 
 Data flow through this method:
-  1. Generate a unique ID for this notification via the IDGenerator port.
-  2. Build a domain.Notification value — domain rules apply here.
-  3. Deliver it via the NotificationSender port — infrastructure concern.
-  4. Return a view DTO to the caller (the bridge adapter in main.go).
+ 1. Generate a unique ID for this notification via the IDGenerator port.
+ 2. Build a domain.Notification value — domain rules apply here.
+ 3. Deliver it via the NotificationSender port — infrastructure concern.
+ 4. Return a view DTO to the caller (the bridge adapter in main.go).
 
-This method is reached indirectly from the taskmanagement module:
-  taskmanagement.TaskService.CompleteTask
-    → taskOutbound.TaskEventPublisher.PublishTaskCompleted
-      → taskCompletionBridge.PublishTaskCompleted  (in cmd/api/main.go)
-        → notificationInbound.SendTaskCompletionNotificationUseCase
-          → here
+This method is reached indirectly from the task module:
+
+	task.TaskService.CompleteTask
+	  → taskOutbound.TaskEventPublisher.PublishTaskCompleted
+	    → taskCompletionBridge.PublishTaskCompleted  (in cmd/api/main.go)
+	      → notificationInbound.SendTaskCompletionNotificationUseCase
+	        → here
 
 Neither the bridge nor this service holds a reference to the other module.
 All communication is through interfaces. The composition root is the

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"go-example/internal/taskmanagement/domain"
+	"go-example/internal/task/domain"
 )
 
 var ErrTaskNotFound = errors.New("task not found")

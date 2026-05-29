@@ -11,7 +11,7 @@ TaskCompletedEvent is a domain event DTO.
 A domain event records that something significant happened inside the domain.
 This one captures the exact moment a task transitioned to the COMPLETED state.
 
-Key design decision: the DTO lives in the OUTBOUND PORTS of the taskmanagement
+Key design decision: the DTO lives in the OUTBOUND PORTS of the task
 module — not in the notification module, not in a shared package.
 The module that produces the event owns its definition.
 
@@ -52,9 +52,9 @@ The concrete adapter that satisfies this port decides what happens next:
   - In production: you might publish to a Kafka topic, write to an event
     store, update a read model, or trigger a saga.
 
-The taskmanagement module is completely oblivious to which adapter is used.
+The task module is completely oblivious to which adapter is used.
 Swapping from the bridge adapter to a Kafka publisher requires zero changes
-anywhere inside the taskmanagement package tree.
+anywhere inside the task package tree.
 
 This is the "protect the core from infrastructure" promise of hexagonal architecture.
 */

@@ -31,11 +31,11 @@ type NotificationSender interface {
 IDGenerator is the outbound port for creating notification identifiers.
 
 You will notice this interface has the exact same shape as the IDGenerator
-interface in taskmanagement/ports/outbound. That is intentional.
+interface in task/ports/outbound. That is intentional.
 
 Each module defines its own copy of the interfaces it needs.
 There is no shared "common" package. This keeps modules truly independent:
-  - You can change the taskmanagement ID generation strategy without
+  - You can change the task ID generation strategy without
     affecting the notification module at all.
   - You can test each module's service with its own fake ID generator.
 
@@ -55,7 +55,7 @@ Having Clock here (instead of calling time.Now() directly) makes the
 notification service deterministic in tests: inject a fixedClock and the
 sentAt timestamps become predictable and assertable.
 
-This is the same reasoning used in taskmanagement/ports/outbound.
+This is the same reasoning used in task/ports/outbound.
 Reproducible tests are worth the small extra indirection.
 */
 type Clock interface {
